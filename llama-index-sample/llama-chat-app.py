@@ -41,7 +41,6 @@ class LlamaChatApp:
     def __init__(self):
         # Initialize the model name
         self.model_name = "meta-llama/Llama-2-7b-chat-hf"
-
         # Initialize the embedding name
         self.embedding_name = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -65,8 +64,9 @@ class LlamaChatApp:
             model_kwargs={
                 "torch_dtype": torch.float16,
                 "load_in_8bit": True,
-                "use_auth_token": HF_TOKEN,
-                "use_safetensors": True,
+                "token": HF_TOKEN,
+                "trust_remote_code": True,
+                # "use_safetensors": True,
                 "quantization_config": BNB_CONFIG
             }
         )
