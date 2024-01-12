@@ -23,7 +23,9 @@ from typing import Union
 
 
 HF_TOKEN = os.getenv("HF_TOKEN")
+print(HF_TOKEN)
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
+print(PG_CONN_STRING)
 DB_NAME = "edb_admin"
 TABLE_NAME = "pgvector_test"
 BNB_CONFIG = BitsAndBytesConfig(
@@ -43,7 +45,7 @@ class LlamaChatApp:
         # Initialize the embedding name
         self.embedding_name = "sentence-transformers/all-MiniLM-L6-v2"
 
-    def init_llama_model(self) -> Union[HuggingFaceLLM, HuggingFaceEmbeddings]:
+    def init_llama_model(self):
         """
         Init llama model and embedding
 
@@ -52,28 +54,38 @@ class LlamaChatApp:
             return module and embedding
         """
         # Initialize the Llama model
+        print("Initialize the Llama model")
         llm = HuggingFaceLLM(
-          context_window=4096,
-          max_new_tokens=2048,
-          generate_kwargs={"temperature": 0.0, "do_sample": False},
-          tokenizer_name=self.model_name,
-          model_name=self.model_name,
-          device_map="auto",
-          model_kwargs={
-            "torch_dtype": torch.float16,
-            "load_in_8bit": True,
-            "use_auth_token": HF_TOKEN,
-            "use_safetensors": True,
-            "quantization_config": BNB_CONFIG
-          }
+            context_window=4096,
+            max_new_tokens=2048,
+            generate_kwargs={"temperature": 0.0, "do_sample": False},
+            tokenizer_name=self.model_name,
+            model_name=self.model_name,
+            device_map="auto",
+            model_kwargs={
+                "torch_dtype": torch.float16,
+                "load_in_8bit": True,
+                "use_auth_token": HF_TOKEN,
+                "use_safetensors": True,
+                "quantization_config": BNB_CONFIG
+            }
         )
         # Initialize the embeddings
+        print("Initialize the embeddings")
         embeddings = HuggingFaceEmbeddings(
-          model_name=self.embedding_name,
-          # to run model on CPU
-          model_kwargs={'device': 'cpu'}
+            model_name=self.embedding_name,
+            # to run model on CPU
+            model_kwargs={'device': 'cpu'}
         )
-        return llm, embeddings
+        # Create the service context
+        print("Create the service context")
+        service_context = ServiceContext.from_defaults(
+            llm=llm,
+            embed_model=embeddings
+        )
+        # Set the global service context
+        print("Set the global service context")
+        set_global_service_context(service_context)
 
     def init_pg_vector(self) -> StorageContext:
         """
@@ -91,6 +103,7 @@ class LlamaChatApp:
             c.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         # Create a URL object from the connection string
         url = make_url(connection_string)
+        print(f"{url.host}")
         # Create a PGVectorStore object with the specified parameters
         vector_store = PGVectorStore.from_params(
             database=DB_NAME,
@@ -128,20 +141,20 @@ class LlamaChatApp:
 
         try:
             # Initialize the Llama model and embeddings
-            llm, embeddings = self.init_llama_model()
-            # Create the service context
-            service_context = ServiceContext.from_defaults(
-                llm=llm,
-                embed_model=embeddings
-            )
-            # Set the global service context
-            set_global_service_context(service_context)
+            # llm, embeddings = self.init_llama_model()
+            # # Create the service context
+            # service_context = ServiceContext.from_defaults(
+            #     llm=llm,
+            #     embed_model=embeddings
+            # )
+            # # Set the global service context
+            # set_global_service_context(service_context)
             # Initialize the PostgreSQL vector storage
             storage_context = self.init_pg_vector()
             # Create the vector store index from the documents
             index = VectorStoreIndex.from_documents(
                 documents=documents,
-                service_context=service_context,
+                # service_context=service_context,
                 storage_context=storage_context,
                 show_progress=True
             )
@@ -168,6 +181,7 @@ class LlamaChatApp:
         # Initialize default values for answer and sources
         answer, sources = 'could not generate an answer', ''
         # Load document from file
+        print(f"loading document from {fileobj.name}")
         db = self.load_document(file_name=fileobj.name)
         if db:
             # Create query engine from loaded document
@@ -219,6 +233,12 @@ def gradio_interface(
     """
     # Initialize LlamaChatApp object
     chat_ob = LlamaChatApp()
+    try:
+        # Initialize the Llama model and embeddings
+        chat_ob.init_llama_model()
+    except Exception as error:
+        print(f"Exception while handling error {str(error)}")
+        return None
     # Create a Gradio Interface
     demo = gradio.Interface(
         fn=chat_ob.get_answer,
