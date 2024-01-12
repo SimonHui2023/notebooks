@@ -1,14 +1,13 @@
-
 import gradio
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from llama_index import (
-    HuggingFaceLLM,
     SimpleDirectoryReader,
     VectorStoreIndex,
     ServiceContext,
     StorageContext,
     set_global_service_context,
 )
+from llama_index.llms.huggingface import HuggingFaceLLM
 from sqlalchemy import make_url
 # from llama_index.indices.vector_store import VectorStoreIndex
 from llama_index.vector_stores import PGVectorStore
