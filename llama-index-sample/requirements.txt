@@ -1,0 +1,15 @@
+transformers==4.30.0 
+langchain==0.1.0
+llama-index==0.9.27 
+# typing-extensions==4.5.0
+openai==1.5.0
+accelerate==0.21.0
+sentence-transformers==2.2.2
+asyncpg==0.29.0
+psycopg2==2.9.9
+pgvector==0.2.4
+# ipywidgets
+bitsandbytes
+pypdf==3.17.4
+gradio==4.14.0
+sqlalchemy==2.0.24
