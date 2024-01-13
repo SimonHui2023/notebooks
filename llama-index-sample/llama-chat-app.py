@@ -10,7 +10,6 @@ from llama_index import (
 )
 from llama_index.llms.huggingface import HuggingFaceLLM
 from sqlalchemy import make_url
-# from llama_index.indices.vector_store import VectorStoreIndex
 from llama_index.vector_stores import PGVectorStore
 from llama_index.prompts.prompts import SimpleInputPrompt
 from llama_index import download_loader
@@ -145,9 +144,8 @@ class LlamaChatApp:
 
     def predict(self, input, history):
         try:
-            db = self.VectorStoreIndex
-            if db:
-                query_engine = db.as_query_engine()
+            if self.index:
+                query_engine = self.index.as_query_engine()
                 response = query_engine.query(input)
                 return str(response)
         except Exception as error:
