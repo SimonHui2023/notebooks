@@ -147,6 +147,7 @@ class LlamaChatApp:
             if self.index:
                 query_engine = self.index.as_query_engine()
                 response = query_engine.query(input)
+                print(str(response))
                 return str(response)
         except Exception as error:
             print(f"Exception while handling error {str(error)}")
