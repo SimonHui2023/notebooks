@@ -22,7 +22,8 @@ import torch
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
 print(PG_CONN_STRING)
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_test"
+TABLE_NAME = "pgvector_sample"
+
 
 class LlamaChatApp:
     def __init__(self):
@@ -64,8 +65,8 @@ class LlamaChatApp:
         embeddings = LangchainEmbedding(
             HuggingFaceEmbeddings(
                 model_name=self.embedding_name,
-                # to run model on CPU
-                model_kwargs={'device': 'cpu'}
+                # to run model on GPU
+                model_kwargs={'device': 'cuda'}
             )
         )
         # Create the service context
@@ -78,6 +79,8 @@ class LlamaChatApp:
         # Set the global service context
         print("Set the global service context")
         set_global_service_context(service_context)
+        # Get VectorStoreIndex
+        self.index = self.load_document()
 
     def init_pg_vector(self) -> StorageContext:
         """
@@ -138,7 +141,7 @@ class LlamaChatApp:
 
     def predict(self, input, history):
         try:
-            db = self.load_document()
+            db = self.VectorStoreIndex
             if db:
                 query_engine = db.as_query_engine()
                 response = query_engine.query(input)
