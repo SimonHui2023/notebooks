@@ -23,7 +23,7 @@ print(PG_CONN_STRING)
 DOC_URL = os.getenv("DOC_URL")
 print(DOC_URL)
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_sample"
+TABLE_NAME = "pgvector_sample_1"
 
 
 class LlamaChatApp:
@@ -110,7 +110,7 @@ class LlamaChatApp:
             port=url.port,
             user=url.username,
             table_name=TABLE_NAME,
-            embed_dim=1536,  # embedding dimension
+            embed_dim=512,  # embedding dimension
         )
         # Create a StorageContext object with the vector store and return it
         return StorageContext.from_defaults(vector_store=vector_store)
