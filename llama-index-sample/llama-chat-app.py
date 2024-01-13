@@ -150,4 +150,4 @@ class LlamaChatApp:
 
 if __name__ == '__main__':
     chat_ob = LlamaChatApp()
-    gradio.ChatInterface(predict).launch(share=True)
+    gradio.ChatInterface(chat_ob.predict).launch(share=True)
