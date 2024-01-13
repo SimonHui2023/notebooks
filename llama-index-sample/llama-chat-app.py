@@ -1,7 +1,8 @@
 import gradio
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from llama_index.embeddings import LangchainEmbedding
 from llama_index import (
-    SimpleDirectoryReader,
+    # SimpleDirectoryReader,
     VectorStoreIndex,
     ServiceContext,
     StorageContext,
@@ -11,75 +12,66 @@ from llama_index.llms.huggingface import HuggingFaceLLM
 from sqlalchemy import make_url
 # from llama_index.indices.vector_store import VectorStoreIndex
 from llama_index.vector_stores import PGVectorStore
+from llama_index.prompts.prompts import SimpleInputPrompt
+from llama_index import download_loader
+
 import os
 import psycopg2
 import torch
-from transformers import BitsAndBytesConfig
-from typing import Union
 
-# logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-# logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
-# from IPython.display import Markdown, display
-
-
-HF_TOKEN = os.getenv("HF_TOKEN")
-print(HF_TOKEN)
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
 print(PG_CONN_STRING)
 DB_NAME = "edb_admin"
 TABLE_NAME = "pgvector_test"
-BNB_CONFIG = BitsAndBytesConfig(
-    llm_int8_enable_fp32_cpu_offload=True,
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.bfloat16
-)
-
 
 class LlamaChatApp:
     def __init__(self):
-        # Initialize the model name
-        self.model_name = "meta-llama/Llama-2-7b-chat-hf"
-        # Initialize the embedding name
-        self.embedding_name = "sentence-transformers/all-MiniLM-L6-v2"
-
-    def init_llama_model(self):
         """
         Init llama model and embedding
-
-        Returns:
-            Union[HuggingFaceLLM, HuggingFaceEmbeddings]:
-            return module and embedding
         """
+        # Initialize the model name
+        self.model_name = "microsoft/phi-2"
+        # Initialize the embedding name
+        self.embedding_name = "BAAI/bge-small-en-v1.5"
+        self.system_prompt = """
+            You are a Q&A assistant.
+            Your goal is to answer questions as accurately
+            as possible based on the instructions and context provided.
+        """
+        # This will wrap the default prompts that are internal to llama-index
+        self.query_wrapper_prompt = SimpleInputPrompt("<|USER|>{query_str}<|ASSISTANT|>")
+
+        self.url = "https://www.enterprisedb.com/docs/pdfs/biganimal/release/biganimal_vrelease_documentation.pdf"
         # Initialize the Llama model
         print("Initialize the Llama model")
         llm = HuggingFaceLLM(
             context_window=4096,
-            max_new_tokens=2048,
+            max_new_tokens=256,
             generate_kwargs={"temperature": 0.0, "do_sample": False},
+            system_prompt=self.system_prompt,
+            query_wrapper_prompt=self.query_wrapper_prompt,
             tokenizer_name=self.model_name,
             model_name=self.model_name,
             device_map="auto",
             model_kwargs={
-                "torch_dtype": torch.float16,
-                "load_in_8bit": True,
-                "token": HF_TOKEN,
-                "trust_remote_code": True,
-                # "use_safetensors": True,
-                "quantization_config": BNB_CONFIG
+                "torch_dtype": torch.bfloat16,
+                "use_safetensors": True,
+                "trust_remote_code": True
             }
         )
         # Initialize the embeddings
         print("Initialize the embeddings")
-        embeddings = HuggingFaceEmbeddings(
-            model_name=self.embedding_name,
-            # to run model on CPU
-            model_kwargs={'device': 'cpu'}
+        embeddings = LangchainEmbedding(
+            HuggingFaceEmbeddings(
+                model_name=self.embedding_name,
+                # to run model on CPU
+                model_kwargs={'device': 'cpu'}
+            )
         )
         # Create the service context
         print("Create the service context")
         service_context = ServiceContext.from_defaults(
+            chunk_size=1024,
             llm=llm,
             embed_model=embeddings
         )
@@ -112,44 +104,25 @@ class LlamaChatApp:
             port=url.port,
             user=url.username,
             table_name=TABLE_NAME,
-            embed_dim=384,  # embedding dimension
+            embed_dim=1536,  # embedding dimension
         )
         # Create a StorageContext object with the vector store and return it
         return StorageContext.from_defaults(vector_store=vector_store)
 
-    def load_document(self, file_name: str) -> VectorStoreIndex:
+    def load_document(self) -> VectorStoreIndex:
         """
         Load a document and save it to the pg database.
         Args:
-            file_name (str): The name of the file to retrieve.
+            url (str): Remote download url
         Returns:
              VectorStoreIndex: The index of the vector store.
         """
-        # get file extension
-        file_extension = file_name.split(".")[-1]
-        # Check if file extension is supported
-        if file_extension not in ["pdf", "docx", "csv"]:
-            print(
-              f"Cannot process {file_extension}. "
-              "Only 'pdf', 'docx' and 'csv' are supported"
-            )
-            return None
+        RemoteReader = download_loader("RemoteReader")
 
-        # Read the contents of the directory
-        directory = os.path.dirname(file_name)
-        documents = SimpleDirectoryReader(f"{directory}/").load_data()
+        loader = RemoteReader()
+        documents = loader.load_data(url=self.url)
 
         try:
-            # Initialize the Llama model and embeddings
-            # llm, embeddings = self.init_llama_model()
-            # # Create the service context
-            # service_context = ServiceContext.from_defaults(
-            #     llm=llm,
-            #     embed_model=embeddings
-            # )
-            # # Set the global service context
-            # set_global_service_context(service_context)
-            # Initialize the PostgreSQL vector storage
             storage_context = self.init_pg_vector()
             # Create the vector store index from the documents
             index = VectorStoreIndex.from_documents(
@@ -163,91 +136,18 @@ class LlamaChatApp:
             print(f"Exception while handling error {str(error)}")
             return None
 
-    def get_answer(
-        self,
-        fileobj: gradio.File,
-        search_query: str
-    ) -> Union[str, str]:
-        """
-        Get answers to user questions from Llama2 using API.
-
-        Args:
-            fileobj (gradio.File): Uploaded file.
-            search_query (str): User question.
-        Returns:
-            answer (str): answer from the LLM
-            sources (list): answer source from document
-        """
-        # Initialize default values for answer and sources
-        answer, sources = 'could not generate an answer', ''
-        # Load document from file
-        print(f"loading document from {fileobj.name}")
-        db = self.load_document(file_name=fileobj.name)
-        if db:
-            # Create query engine from loaded document
-            query_engine = db.as_query_engine()
-            try:
-                # Query Llama2 API with the user question
-                llm_response = query_engine.query(search_query)
-                # Get the response from Llama2 API
-                answer = llm_response.response
-                # Get the formatted sources from the document
-                sources = llm_response.get_formatted_sources()
-            except Exception as error:
-                print(f"Error while generating answer: {str(error)}")
-        # Return the answer and sources
-        return answer, sources
-
-
-def gradio_interface(
-    inputs: list = [
-                    gradio.File(
-                      label="Input file",
-                      file_types=[".pdf", ".csv", ".docx"]
-                    ),
-                    gradio.Textbox(
-                      label="your input",
-                      lines=3,
-                      placeholder="Your search query ..."
-                    )
-                  ],
-    outputs: list = [
-                    gradio.Textbox(
-                      label="response",
-                      lines=6,
-                      placeholder="response returned from llama2 ...."
-                    ),
-                    gradio.Textbox(
-                      label="response source",
-                      lines=6,
-                      placeholder="source to response ..."
-                    )
-                  ]
-  ):
-    """
-    Render a Gradio interface.
-
-    Args:
-        inputs (list): List of input components.
-        outputs (list): List of output components.
-    """
-    # Initialize LlamaChatApp object
-    chat_ob = LlamaChatApp()
-    try:
-        # Initialize the Llama model and embeddings
-        chat_ob.init_llama_model()
-    except Exception as error:
-        print(f"Exception while handling error {str(error)}")
-        return None
-    # Create a Gradio Interface
-    demo = gradio.Interface(
-        fn=chat_ob.get_answer,
-        inputs=inputs,
-        outputs=outputs
-    )
-    # Launch the interface with sharing enabled
-    demo.launch(share=True)
+    def predict(self, input, history):
+        try:
+            db = self.load_document()
+            if db:
+                query_engine = db.as_query_engine()
+                response = query_engine.query(input)
+                return str(response)
+        except Exception as error:
+            print(f"Exception while handling error {str(error)}")
+            return None
 
 
 if __name__ == '__main__':
-    gradio_interface()
+    chat_ob = LlamaChatApp()
+    gradio.ChatInterface(predict).launch(share=True)
