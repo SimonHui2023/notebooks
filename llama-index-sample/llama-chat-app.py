@@ -110,7 +110,7 @@ class LlamaChatApp:
             port=url.port,
             user=url.username,
             table_name=TABLE_NAME,
-            embed_dim=384,  # embedding dimension
+            embed_dim=512,  # embedding dimension
         )
         # Create a StorageContext object with the vector store and return it
         return StorageContext.from_defaults(vector_store=vector_store)
