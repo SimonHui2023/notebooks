@@ -21,6 +21,8 @@ import torch
 
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
 print(PG_CONN_STRING)
+DOC_URL = os.getenv("DOC_URL")
+print(DOC_URL)
 DB_NAME = "edb_admin"
 TABLE_NAME = "pgvector_sample"
 
@@ -40,9 +42,11 @@ class LlamaChatApp:
             as possible based on the instructions and context provided.
         """
         # This will wrap the default prompts that are internal to llama-index
-        self.query_wrapper_prompt = SimpleInputPrompt("<|USER|>{query_str}<|ASSISTANT|>")
+        self.query_wrapper_prompt = SimpleInputPrompt(
+            "<|USER|>{query_str}<|ASSISTANT|>"
+        )
 
-        self.url = "https://www.enterprisedb.com/docs/pdfs/biganimal/release/biganimal_vrelease_documentation.pdf"
+        self.url = DOC_URL
         # Initialize the Llama model
         print("Initialize the Llama model")
         llm = HuggingFaceLLM(
