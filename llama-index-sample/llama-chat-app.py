@@ -34,7 +34,7 @@ class LlamaChatApp:
         # Initialize the model name
         self.model_name = "microsoft/phi-2"
         # Initialize the embedding name
-        self.embedding_name = "BAAI/bge-small-en-v1.5"
+        self.embedding_name = "sentence-transformers/all-MiniLM-L6-v2"
         self.system_prompt = """
             You are a Q&A assistant.
             Your goal is to answer questions as accurately
