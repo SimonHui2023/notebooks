@@ -50,7 +50,7 @@ class LlamaChatApp:
         print("Initialize the Llama model")
         llm = HuggingFaceLLM(
             context_window=4096,
-            max_new_tokens=2048,
+            max_new_tokens=256,
             generate_kwargs={"temperature": 0.0, "do_sample": False},
             system_prompt=self.system_prompt,
             query_wrapper_prompt=self.query_wrapper_prompt,
