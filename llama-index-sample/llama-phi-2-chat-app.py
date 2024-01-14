@@ -19,7 +19,7 @@ import torch
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
 DOC_URL = os.getenv("DOC_URL")
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_demo"
+TABLE_NAME = "pgvector_llama_phi_2"
 
 
 class LlamaChatApp:

@@ -20,7 +20,7 @@ from typing import Union
 
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_test"
+TABLE_NAME = "pgvector_llama_2_7b"
 BNB_CONFIG = BitsAndBytesConfig(
     llm_int8_enable_fp32_cpu_offload=True,
     load_in_4bit=True,
