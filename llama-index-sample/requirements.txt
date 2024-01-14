@@ -12,3 +12,4 @@ pypdf==3.17.4
 gradio==4.14.0
 sqlalchemy==2.0.24
 ctransformers==0.2.27
+bitsandbytes==0.42.0
