@@ -1,5 +1,5 @@
 import gradio
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.embeddings import LangchainEmbedding
 from llama_index import (
     # SimpleDirectoryReader,
@@ -23,7 +23,7 @@ print(PG_CONN_STRING)
 DOC_URL = os.getenv("DOC_URL")
 print(DOC_URL)
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_sample_1"
+TABLE_NAME = "pgvector_sample_2"
 
 
 class LlamaChatApp:
@@ -34,7 +34,7 @@ class LlamaChatApp:
         # Initialize the model name
         self.model_name = "microsoft/phi-2"
         # Initialize the embedding name
-        self.embedding_name = "sentence-transformers/all-MiniLM-L6-v2"
+        self.embedding_name = "Xenova/text-embedding-ada-002"
         self.system_prompt = """
             You are a Q&A assistant.
             Your goal is to answer questions as accurately
@@ -72,6 +72,7 @@ class LlamaChatApp:
                 model_kwargs={'device': 'cuda'}
             )
         )
+
         # Create the service context
         print("Create the service context")
         service_context = ServiceContext.from_defaults(
@@ -110,7 +111,7 @@ class LlamaChatApp:
             port=url.port,
             user=url.username,
             table_name=TABLE_NAME,
-            embed_dim=512,  # embedding dimension
+            embed_dim=1536,  # embedding dimension
         )
         # Create a StorageContext object with the vector store and return it
         return StorageContext.from_defaults(vector_store=vector_store)
