@@ -2,7 +2,6 @@ import gradio
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.embeddings import LangchainEmbedding
 from llama_index import (
-    # SimpleDirectoryReader,
     VectorStoreIndex,
     ServiceContext,
     StorageContext,
@@ -13,17 +12,14 @@ from sqlalchemy import make_url
 from llama_index.vector_stores import PGVectorStore
 from llama_index.prompts.prompts import SimpleInputPrompt
 from llama_index import download_loader
-
 import os
 import psycopg2
 import torch
 
 PG_CONN_STRING = os.getenv("PG_CONN_STRING")
-print(PG_CONN_STRING)
 DOC_URL = os.getenv("DOC_URL")
-print(DOC_URL)
 DB_NAME = "edb_admin"
-TABLE_NAME = "pgvector_sample_2"
+TABLE_NAME = "pgvector_demo"
 
 
 class LlamaChatApp:
@@ -148,7 +144,6 @@ class LlamaChatApp:
             if self.index:
                 query_engine = self.index.as_query_engine()
                 response = query_engine.query(input)
-                print(str(response))
                 return str(response)
         except Exception as error:
             print(f"Exception while handling error {str(error)}")
